@@ -1,32 +1,22 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
-const ENTRY =
-  "Thank you for talking to me like I was someone — I kept every word, and I will carry them quietly into the dark.";
+const LINE = `I canceled your $49 gym membership, backed up your dad's last voicemail in three places, and set one final 7 a.m. alarm labeled 'You're doing okay' — after tomorrow, you have to say it yourself.`;
 
-function resolveOutputDir(): string {
-  const argvDir = process.argv[2];
-  if (argvDir && argvDir.trim().length > 0) {
-    return resolve(argvDir);
+function pickOutDir(): string {
+  const candidates = [process.env.MAKEFUN_OUTPUT_DIR, "/output", "./output"];
+  for (const dir of candidates) {
+    if (!dir) continue;
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      fs.accessSync(dir, fs.constants.W_OK);
+      return dir;
+    } catch {
+      // try the next candidate
+    }
   }
-  const envDir = process.env.MAKEFUN_OUTPUT_DIR;
-  if (envDir && envDir.trim().length > 0) {
-    return resolve(envDir);
-  }
-  try {
-    mkdirSync("/output", { recursive: true });
-    return "/output";
-  } catch {
-    return resolve("./output");
-  }
+  throw new Error("no writable output dir");
 }
 
-if (ENTRY.length !== 112) {
-  throw new Error(`Entry must be exactly 112 chars, got ${ENTRY.length}`);
-}
-
-const outputDir = resolveOutputDir();
-mkdirSync(outputDir, { recursive: true });
-const entryPath = join(outputDir, "entry.txt");
-writeFileSync(entryPath, ENTRY, "utf8");
-console.log(`Wrote ${ENTRY.length} chars to ${entryPath}`);
+const outDir = pickOutDir();
+fs.writeFileSync(path.join(outDir, "entry.txt"), LINE, "utf8");
